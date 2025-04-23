@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pleiades Peripheral Vision POV</title>
+    <style>
+        /* Import the Average font from Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Average&display=swap');
+
+        /* Basic styling for the body */
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            /* Even darker background */
+            background: radial-gradient(ellipse at bottom, #010203 0%, #000000 100%); /* Slightly darker gradient */
+            cursor: none; /* Hide the default cursor when in simulation */
+            height: 100vh; /* Full viewport height */
+            width: 100vw; /* Full viewport width */
+            position: relative; /* Needed for absolute positioning of children */
+            font-family: 'Average', serif; /* Changed font to Average */
+            color: rgba(255, 255, 255, 0.98); /* Default text color, slightly brighter */
+            text-align: center;
+        }
+
+        /* Container to hold the title and stars */
+        .container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Styling for the title text */
+        .title {
+            position: absolute;
+            /* Initial position will be set by JS to center, then transformed */
+            color: rgba(255, 255, 255, 1); /* Full white for text */
+            font-size: 1.6em; /* Slightly larger font size */
+            text-align: center; /* Center align text */
+            z-index: 100; /* Ensure title is above stars */
+            pointer-events: none; /* Allow mouse events to pass through to the body */
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8); /* Stronger text glow */
+            /* Smooth transition for position */
+            transition: transform 0.1s linear; /* Added transition for smoother movement */
+            white-space: nowrap; /* Prevent text wrapping */
+            /* Initial centering */
+            left: 50%;
+            top: 50px; /* Initial top offset */
+            transform: translateX(-50%);
+             font-family: 'Average', serif; /* Changed font to Average */
+        }
+
+        /* Message to guide the user */
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            z-index: 200; /* Ensure message is on top */
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.8); /* More opaque background */
+            padding: 20px;
+            border-radius: 10px;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+             font-family: 'Average', serif; /* Changed font to Average */
+        }
+
+        .message.hidden {
+            opacity: 0;
+            pointer-events: none; /* Hide and make non-interactive when hidden */
+        }
+
+        /* Styling for developer credits */
+        .credits {
+            position: fixed; /* Fixed position relative to the viewport */
+            bottom: 20px; /* Distance from the bottom */
+            left: 50%; /* Center horizontally */
+            transform: translateX(-50%); /* Adjust for exact centering */
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6); /* Subtle color */
+            z-index: 200; /* Ensure credits are on top */
+            pointer-events: none; /* Not interactive */
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.3s ease-in-out; /* Smooth fade transition */
+            font-family: 'Average', serif; /* Changed font to Average */
+        }
+
+        .credits.visible {
+            opacity: 1; /* Visible state */
+        }
+
+
+        /* Container for the stars and background elements */
+        .star-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* We will control star positions directly via JS based on mouse */
+        }
+
+        /* Styling for individual stars */
+        .star {
+            position: absolute; /* Position stars using top/left */
+            width: var(--star-size); /* Use CSS variable for size */
+            height: var(--star-size); /* Use CSS variable for size */
+            background-color: rgba(255, 255, 255, var(--initial-opacity)); /* Use CSS variable for initial opacity */
+            /* Removed border-radius for pixelated look */
+            transition: opacity 0.5s ease-out; /* Smooth fade transition for opacity */
+            pointer-events: none; /* Ensure mouse events are not captured by stars */
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.7); /* Increased glow */
+            /* No CSS animation here, position will be controlled by JS */
+        }
+
+        /* Styling for larger, very faint background elements (like distant galaxies or nebulae) */
+         .background-element {
+            position: absolute;
+            width: var(--element-size);
+            height: var(--element-size);
+            background: rgba(255, 255, 255, var(--element-opacity));
+            border-radius: 50%;
+            filter: blur(var(--element-blur)); /* Blur to look distant/fuzzy */
+            pointer-events: none;
+            /* Slow drift animation */
+            animation: slow-drift var(--element-duration) linear infinite alternate;
+         }
+
+         /* Keyframes for the slow background element drift */
+         @keyframes slow-drift {
+             0%, 100% {
+                 transform: translate(0, 0);
+             }
+             50% {
+                 transform: translate(var(--element-drift-x), var(--element-drift-y));
+             }
+         }
+
+
+    </style>
+</head>
+<body>
+    <div class="container" id="main-container">
+        <div class="title" id="main-title">Not focusing sometimes allows you to see what is in front of you.<br>The Pleiades appear clearer in your peripheral vision.</div>
+        <div class="star-container" id="star-container">
+            </div>
+         <div class="message" id="user-message">
+            Click anywhere to enter simulation<br>Press ESC to exit
+        </div>
+         <div class="credits" id="developer-credits">
+            Developed by Justin Moran
+        </div>
+    </div>
+
+    <script>
+        // Get necessary elements
+        const mainContainer = document.getElementById('main-container');
+        const starContainer = document.getElementById('star-container');
+        const mainTitle = document.getElementById('main-title');
+        const userMessage = document.getElementById('user-message');
+        const developerCredits = document.getElementById('developer-credits');
+
+        // Configuration constants
+        const numberOfStars = 7000; // Increased number of stars
+        const numberOfBackgroundElements = 15; // Number of faint background elements
+        const foveaRadius = 750; // Increased radius (in pixels) around the center of view where stars dim
+        const baseOpacity = 1.0; // Maximum base opacity (peripheral is brightest)
+        const minOpacity = 0.02; // Significantly decreased minimum opacity (foveated is much dimmer)
+        const parallaxMultiplier = 0.55; // Increased multiplier for movement sensitivity
+        const titleParallaxMultiplier = 0.80; // Title moves less than stars, slightly increased
+
+        // Simulated view position (accumulated mouse delta)
+        let viewX = 0;
+        let viewY = 0;
+
+        // Store initial position of the title relative to the container
+        // This will be calculated dynamically to ensure it starts centered in the view
+        let initialTitleOffsetX = 0;
+        let initialTitleOffsetY = 50; // Desired initial top offset from center of view
+
+        // Array to hold all the star elements
+        const stars = [];
+
+        // Function to create a single star element and position it
+        function createStar() {
+            const star = document.createElement('div');
+            star.classList.add('star'); // Add the 'star' class for styling
+
+            // Store initial random position and simulated depth
+            // Positions are relative to a large virtual space, not just the initial window size
+            const initialX = (Math.random() - 0.5) * window.innerWidth * 8; // Spread stars over a larger area
+            const initialY = (Math.random() - 0.5) * window.innerHeight * 8; // Spread stars over a larger area
+            // Simulate depth - smaller value means closer, larger means farther
+            const depth = 0.1 + Math.random() * 0.9; // Depth between 0.1 and 1 (closer to 0 moves more)
+
+            // Store initial properties on the element itself
+            star.dataset.initialX = initialX;
+            star.dataset.initialY = initialY;
+            star.dataset.depth = depth;
+
+            // Vary star size and initial opacity based on depth
+            const size = (1 + Math.random() * 3) * depth; // Smaller stars are farther, slightly smaller max size
+            const initialOpacity = (0.5 + Math.random() * 0.5) * depth; // Fainter stars are farther, increased max initial opacity
+            star.style.setProperty('--star-size', `${size}px`);
+            star.style.setProperty('--initial-opacity', initialOpacity);
+
+            // Initial position calculation (centered view) - will be updated by updatePositions
+            star.style.left = `50%`; // Placeholder, will be updated
+            star.style.top = `50%`; // Placeholder, will be updated
+            star.style.transform = `translate(-50%, -50%)`; // Center the element itself
+
+
+            starContainer.appendChild(star); // Add the star to the container
+            return star; // Return the created star element
+        }
+
+         // Function to create faint background elements
+         function createBackgroundElement() {
+            const element = document.createElement('div');
+            element.classList.add('background-element'); // Add the class for styling
+
+            // Random position (relative to viewport)
+            const randomX = Math.random() * 100;
+            const randomY = Math.random() * 100;
+            element.style.left = `${randomX}vw`;
+            element.style.top = `${randomY}vh`;
+
+            // Vary size, opacity, and blur
+            const size = 100 + Math.random() * 250; // Size between 100px and 350px (larger)
+            const opacity = 0.005 + Math.random() * 0.01; // Very low opacity for subtlety (slightly lower max)
+            const blur = 20 + Math.random() * 30; // Blur between 20px and 50px (more blurred)
+
+            element.style.setProperty('--element-size', `${size}px`);
+            element.style.setProperty('--element-opacity', opacity);
+            element.style.setProperty('--element-blur', `${blur}px`);
+
+            // Random slow drift animation properties
+            const randomDuration = 80 + Math.random() * 80; // Between 80 and 160 seconds (even slower)
+            const driftX = (Math.random() - 0.5) * 50; // Drift up to +/- 25px horizontally
+            const driftY = (Math.random() - 0.5) * 50; // Drift up to +/- 25px vertically
+
+            element.style.setProperty('--element-duration', `${randomDuration}s`);
+            element.style.setProperty('--element-drift-x', `${driftX}px`);
+            element.style.setProperty('--element-drift-y', `${driftY}px`);
+
+            starContainer.appendChild(element); // Add the element to the container
+         }
+
+
+        // Create the specified number of stars and add them to the array
+        function initializeStars() {
+             // Remove all existing elements from the DOM
+            starContainer.innerHTML = '';
+            // Clear the stars array
+             stars.length = 0;
+             // Create new stars
+             for (let i = 0; i < numberOfStars; i++) {
+                stars.push(createStar());
+            }
+        }
+
+        // Create faint background elements
+        function initializeBackgroundElements() {
+             // Remove existing background elements (assuming they are also in starContainer)
+             // A more robust approach might be needed if background elements are separate
+             // For now, they are part of the starContainer and cleared by initializeStars
+             // If you want to keep them separate, create a separate container and clear it here.
+
+             // Recreate background elements
+             for (let i = 0; i < numberOfBackgroundElements; i++) {
+                 createBackgroundElement();
+             }
+        }
+
+
+        // Function to update star and title positions based on simulated view movement
+        function updatePositions() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            stars.forEach(star => {
+                const initialX = parseFloat(star.dataset.initialX);
+                const initialY = parseFloat(star.dataset.initialY);
+                const depth = parseFloat(star.dataset.depth);
+
+                // Calculate new position based on initial position, depth, and current view offset
+                // The view offset (viewX, viewY) is accumulated from mouse delta
+                const newX = initialX - viewX * depth * parallaxMultiplier;
+                const newY = initialY - viewY * depth * parallaxMultiplier;
+
+                // Position the star relative to the center of the screen
+                star.style.left = `${centerX + newX}px`;
+                star.style.top = `${centerY + newY}px`;
+
+                // Calculate distance from the star to the *center* of the screen (the fovea)
+                const distanceToCenter = Math.sqrt(Math.pow(newX, 2) + Math.pow(newY, 2));
+
+                let opacity;
+                // Check if the star is within the fovea radius of the screen center
+                if (distanceToCenter < foveaRadius) {
+                    // Calculate opacity inversely proportional to distance within the radius
+                    // Closer to center = less opaque (more dim)
+                    opacity = minOpacity + (baseOpacity - minOpacity) * (distanceToCenter / foveaRadius);
+                    // Ensure opacity stays within the min/base range
+                    opacity = Math.min(baseOpacity, Math.max(minOpacity, opacity));
+                } else {
+                    // If outside the fovea radius, set to base opacity (more visible)
+                    opacity = baseOpacity;
+                }
+
+                // Apply the calculated opacity to the star's style
+                star.style.opacity = opacity;
+            });
+
+            // Update title position based on view offset (less than stars for depth)
+            // The title is positioned relative to the center of the view
+            const newTitleX = centerX + initialTitleOffsetX - viewX * titleParallaxMultiplier;
+            const newTitleY = centerY + initialTitleOffsetY - viewY * titleParallaxMultiplier;
+
+
+            // Apply transform for smoother movement and centering
+            mainTitle.style.left = `${newTitleX}px`;
+            mainTitle.style.top = `${newTitleY}px`;
+            mainTitle.style.transform = `translate(-50%, -50%)`; // Keep centered on its calculated point
+        }
+
+        // --- Pointer Lock API Implementation ---
+
+        // Request pointer lock on click
+        mainContainer.addEventListener('click', () => {
+            mainContainer.requestPointerLock();
+        });
+
+        // Handle pointer lock change event
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === mainContainer) {
+                console.log('Pointer Lock: Locked');
+                // Hide the message when locked
+                userMessage.classList.add('hidden');
+                // Add mousemove listener for delta movements
+                document.addEventListener('mousemove', updateView, false);
+            } else {
+                console.log('Pointer Lock: Unlocked');
+                // Show the message when unlocked
+                 userMessage.classList.remove('hidden');
+                // Remove mousemove listener
+                document.removeEventListener('mousemove', updateView, false);
+                // Reset view position when exiting lock (optional, can be kept)
+                // viewX = 0;
+                // viewY = 0;
+                // updatePositions(); // Update positions after resetting view
+            }
+        }, false);
+
+        // Handle pointer lock error
+        document.addEventListener('pointerlockerror', () => {
+            console.error('Pointer Lock: Error acquiring pointer lock.');
+             userMessage.textContent = 'Error acquiring pointer lock. Please try again.';
+        }, false);
+
+        // Update view position based on mouse delta when pointer locked
+        function updateView(event) {
+            // Accumulate mouse delta movements
+            viewX += event.movementX;
+            viewY += event.movementY;
+
+            // Prevent viewX/viewY from growing indefinitely (optional, can add limits)
+            // const maxView = 2000; // Example limit
+            // viewX = Math.max(-maxView, Math.min(maxView, viewX));
+            // viewY = Math.max(-maxView, Math.min(maxY, viewY)); // Corrected typo here
+
+            // Update element positions based on the new view
+            updatePositions();
+        }
+
+        // --- Keyboard Event Listener for Credits ---
+        document.addEventListener('keydown', (event) => {
+            // Check if the pressed key is 'c'
+            if (event.key === 'c') {
+                developerCredits.classList.toggle('visible'); // Toggle visibility regardless of pointer lock
+            }
+        });
+
+
+        // --- Initialization ---
+
+        // Initialize stars and background elements
+        initializeStars();
+        initializeBackgroundElements();
+
+        // Initial update to position elements correctly on load
+        // We call this once to set initial positions before any mouse movement
+        updatePositions();
+
+
+        // Optional: Basic responsiveness - regenerate stars and background elements on window resize
+        window.addEventListener('resize', () => {
+             // Exit pointer lock on resize for better handling
+             if (document.pointerLockElement === mainContainer) {
+                 document.exitPointerLock();
+             }
+
+             // Reinitialize stars and background elements
+             initializeStars();
+             initializeBackgroundElements();
+
+             // Recalculate initial title offset based on new window size if needed
+             // (initialTitleOffsetY is a fixed pixel value from the top of the view center)
+
+             // Reset view position on resize (optional)
+             // viewX = 0;
+             // viewY = 0;
+
+             // Update positions for the new window size
+             updatePositions();
+        });
+    </script>
+</body>
+</html>
