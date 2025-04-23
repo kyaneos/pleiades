@@ -93,6 +93,26 @@
             opacity: 1; /* Visible state */
         }
 
+        /* Visual indicator for the fovea area */
+        .fovea-indicator {
+            position: fixed; /* Fixed position relative to the viewport */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Center the element */
+            width: var(--fovea-indicator-size); /* Size based on foveaRadius */
+            height: var(--fovea-indicator-size); /* Size based on foveaRadius */
+            border: 1px dashed rgba(255, 255, 255, 0.2); /* Subtle dashed border */
+            border-radius: 50%; /* Make it a circle */
+            pointer-events: none; /* Not interactive */
+            z-index: 150; /* Above stars, below messages */
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.3s ease-in-out; /* Smooth fade */
+        }
+
+        .fovea-indicator.visible {
+            opacity: 1; /* Visible state */
+        }
+
 
         /* Container for the stars and background elements */
         .star-container {
@@ -159,6 +179,7 @@
          <div class="credits" id="developer-credits">
             Developed by Justin Moran
         </div>
+        <div class="fovea-indicator" id="fovea-indicator"></div>
     </div>
 
     <script>
@@ -169,6 +190,7 @@
         const userMessage = document.getElementById('user-message');
         const developerCredits = document.getElementById('developer-credits');
         const backgroundMusic = document.getElementById('background-music'); // Get the audio element
+        const foveaIndicator = document.getElementById('fovea-indicator'); // Get the fovea indicator element
 
         // Configuration constants
         const numberOfStars = 7000; // Increased number of stars
@@ -177,7 +199,7 @@
         const baseOpacity = 1.0; // Maximum base opacity (peripheral is brightest)
         const minOpacity = 0.02; // Significantly decreased minimum opacity (foveated is much dimmer)
         const parallaxMultiplier = 0.55; // Increased multiplier for movement sensitivity (desktop mouse)
-        const touchSensitivityMultiplier = 0.8; // Multiplier for touch movement sensitivity
+        const touchSensitivityMultiplier = 1.2; // Multiplier for touch movement sensitivity (increased)
         const titleParallaxMultiplier = 0.80; // Title moves less than stars, slightly increased
 
         // Simulated view position (accumulated mouse/touch delta)
@@ -195,6 +217,9 @@
         // Variable to track the last touch position
         let lastTouchX = null;
         let lastTouchY = null;
+
+        // Flag to check if it's likely a touch device
+        const isTouchDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
         // Function to create a single star element and position it
         function createStar() {
@@ -412,7 +437,16 @@
 
         // Request pointer lock on click (primarily for desktop)
         mainContainer.addEventListener('click', () => {
-            mainContainer.requestPointerLock();
+            // Only request pointer lock if it's likely NOT a touch device
+            if (!isTouchDevice) {
+                mainContainer.requestPointerLock();
+            } else {
+                // On touch devices, we just want to hide the message and potentially play music
+                userMessage.classList.add('hidden');
+                 backgroundMusic.play().catch(error => {
+                     console.error('Failed to play music on touch click:', error);
+                 });
+            }
         });
 
         // Handle pointer lock change event
@@ -428,6 +462,8 @@
 
                 // Add desktop mousemove listener
                 document.addEventListener('mousemove', handleMouseMove, false);
+                // Hide fovea indicator on desktop when locked
+                foveaIndicator.classList.remove('visible');
             } else {
                 console.log('Pointer Lock: Unlocked');
                 // Show the message when unlocked
@@ -440,6 +476,8 @@
                 // viewX = 0;
                 // viewY = 0;
                 // updatePositions(); // Update positions after resetting view
+                 // Show fovea indicator on desktop when unlocked (optional, or keep hidden)
+                 // foveaIndicator.classList.add('visible');
             }
         }, false);
 
@@ -473,6 +511,16 @@
          mainContainer.addEventListener('touchmove', handleTouchMove, false);
          mainContainer.addEventListener('touchend', handleTouchEnd, false);
 
+        // Set fovea indicator size based on foveaRadius
+        foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
+
+        // Show fovea indicator if it's a touch device
+        if (isTouchDevice) {
+            foveaIndicator.classList.add('visible');
+             // Update initial message for touch devices
+             userMessage.innerHTML = 'Touch and drag to explore<br>Tap to start music (if needed)';
+        }
+
 
         // Initial update to position elements correctly on load
         // We call this once to set initial positions before any mouse movement
@@ -499,6 +547,9 @@
 
              // Update positions for the new window size
              updatePositions();
+
+             // Update fovea indicator size on resize
+             foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
         });
     </script>
 </body>
