@@ -143,6 +143,11 @@
 </head>
 <body>
     <div class="container" id="main-container">
+        <audio id="background-music" loop>
+            <source src="saitama v5.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+
         <div class="title" id="main-title">Not focusing sometimes allows you to see what is in front of you.<br>The Pleiades appear clearer in your peripheral vision.</div>
         <div class="star-container" id="star-container">
             </div>
@@ -161,6 +166,7 @@
         const mainTitle = document.getElementById('main-title');
         const userMessage = document.getElementById('user-message');
         const developerCredits = document.getElementById('developer-credits');
+        const backgroundMusic = document.getElementById('background-music'); // Get the audio element
 
         // Configuration constants
         const numberOfStars = 7000; // Increased number of stars
@@ -339,12 +345,20 @@
                 console.log('Pointer Lock: Locked');
                 // Hide the message when locked
                 userMessage.classList.add('hidden');
+                // Play background music when locked
+                backgroundMusic.play().catch(error => {
+                    console.error('Failed to play music:', error);
+                    // Handle potential Autoplay Policy issues
+                    // You might want to show a message asking the user to interact again to play music
+                });
                 // Add mousemove listener for delta movements
                 document.addEventListener('mousemove', updateView, false);
             } else {
                 console.log('Pointer Lock: Unlocked');
                 // Show the message when unlocked
                  userMessage.classList.remove('hidden');
+                // Pause background music when unlocked
+                backgroundMusic.pause();
                 // Remove mousemove listener
                 document.removeEventListener('mousemove', updateView, false);
                 // Reset view position when exiting lock (optional, can be kept)
@@ -389,6 +403,9 @@
         // Initialize stars and background elements
         initializeStars();
         initializeBackgroundElements();
+
+        // Set initial music volume (0.0 to 1.0)
+        backgroundMusic.volume = 0.15; // Set volume to 5%
 
         // Initial update to position elements correctly on load
         // We call this once to set initial positions before any mouse movement
