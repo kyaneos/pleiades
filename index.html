@@ -24,14 +24,14 @@
             display: block;
         }
 
-        /* Overlay container for HTML elements */
+        /* Overlay container for HTML elements - Now the main click target */
         .overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Allow mouse/touch events to pass through by default */
+            pointer-events: auto; /* Allow mouse/touch events on the overlay */
             z-index: 10; /* Ensure overlay is above the canvas */
         }
 
@@ -225,7 +225,7 @@
         Your browser does not support the audio element.
     </audio>
 
-    <div class="overlay" id="overlay">
+    <div class="overlay" id="main-container">
         <div class="title" id="main-title">Not focusing sometimes allows you to see what is in front of you.<br>The Pleiades appear clearer in your peripheral vision.</div>
         <div class="message" id="user-message">
             Click anywhere to start<br>Press ESC to stop
@@ -270,8 +270,7 @@
         <span id="title-parallax-value">0.15</span>
 
         <label for="music-volume">Music Volume:</label>
-        <input type="range" id="music-volume" min="0" max="100" value="5">
-        <span id="music-volume-value">0.05</span>
+        <input type="range" id="music-volume" min="0" max="100" value="50"> <span id="music-volume-value">0.50</span>
 
         <button id="apply-settings">Apply Settings</button>
     </div>
@@ -287,9 +286,9 @@
             console.log('DOMContentLoaded fired. Script is running.');
 
             // Get necessary HTML elements
-            const mainContainer = document.getElementById('main-container');
+            const mainContainer = document.getElementById('main-container'); // Now correctly gets the overlay div
             const threejsContainer = document.getElementById('threejs-container');
-            const overlay = document.getElementById('overlay');
+            const overlay = document.getElementById('overlay'); // This will now be the same as mainContainer
             const mainTitle = document.getElementById('main-title');
             const userMessage = document.getElementById('user-message');
             const developerCredits = document.getElementById('developer-credits');
@@ -330,7 +329,7 @@
             let mouseSensitivity = parseFloat(mouseSensitivityInput.value) / 1000; // Initial value from input (scaled)
             let touchSensitivity = parseFloat(touchSensitivityInput.value) / 1000; // Initial value from input (scaled)
             let titleParallaxMultiplier = parseFloat(titleParallaxInput.value) / 100; // Initial value from input (scaled)
-            // Music volume is set directly on the audio element
+            // Music volume is handled separately
 
 
             // Simulated view rotation (using Euler angles for simplicity in this example)
@@ -666,6 +665,8 @@
             document.addEventListener('pointerlockchange', () => {
                 if (document.pointerLockElement === mainContainer) {
                     console.log('Pointer Lock: Locked');
+                    // Set music volume to full (based on settings) when locked
+                    backgroundMusic.volume = parseFloat(musicVolumeInput.value) / 100;
                     // Add desktop mousemove listener
                     document.addEventListener('mousemove', handleMouseMove, false);
                     // Hide fovea indicator on desktop when locked
@@ -678,8 +679,10 @@
                      if (!isTouchDevice) {
                          userMessage.classList.remove('hidden');
                      }
-                    // Pause background music when unlocked
-                    backgroundMusic.pause();
+                    // Set music volume to half when unlocked
+                    backgroundMusic.volume = (parseFloat(musicVolumeInput.value) / 100) / 2;
+                    // Pause background music when unlocked (if you want it to stop entirely)
+                    // backgroundMusic.pause();
                     // Remove desktop mousemove listener
                     document.removeEventListener('mousemove', handleMouseMove, false);
                     // Reset view rotation when exiting lock (optional, can be kept)
@@ -780,8 +783,8 @@
             // Initialize Three.js scene and elements
             initThreeJS();
 
-            // Set initial music volume (0.0 to 1.0)
-            backgroundMusic.volume = parseFloat(musicVolumeInput.value) / 100; // Set volume from input
+            // Set initial music volume to half of the settings value
+            backgroundMusic.volume = (parseFloat(musicVolumeInput.value) / 100) / 2;
 
              // Add touch event listeners (mobile)
              mainContainer.addEventListener('touchstart', handleTouchStart, false);
@@ -806,6 +809,12 @@
             updateHtmlElementPositions();
 
             console.log('Initialization complete.');
+
+            // Attempt to play music automatically on load (might be blocked by autoplay policies)
+             backgroundMusic.play().catch(error => {
+                 console.log('Autoplay blocked. Music will start on user interaction.');
+                 // You could optionally show a message here indicating music requires interaction
+             });
 
 
             // Optional: Basic responsiveness - handle window resize
