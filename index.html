@@ -341,6 +341,7 @@
 
         // --- Three.js Initialization ---
         function initThreeJS() {
+            console.log('Initializing Three.js...');
             // Create a scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000); // Black background
@@ -352,6 +353,10 @@
             // Create a renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            // Clear previous canvas if it exists
+            while (threejsContainer.firstChild) {
+                threejsContainer.removeChild(threejsContainer.firstChild);
+            }
             threejsContainer.appendChild(renderer.domElement);
 
              // Dispose of previous star field if it exists
@@ -359,6 +364,7 @@
                  scene.remove(starField);
                  starsGeometry.dispose();
                  starsMaterial.dispose();
+                 console.log('Disposed of previous star field.');
              }
 
 
@@ -380,6 +386,8 @@
 
             starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             starsGeometry.setAttribute('opacity', new THREE.Float32BufferAttribute(opacities, 1));
+
+            console.log(`Created ${numberOfStars} stars.`);
 
 
             // Create star material
@@ -422,6 +430,7 @@
 
             // Add background elements (as simple spheres for now) - Only add once
              if (scene.children.filter(c => c.userData.isBackgroundElement).length === 0) {
+                console.log('Adding background elements...');
                 const backgroundElementGeometry = new THREE.SphereGeometry(1, 32, 32);
                 const backgroundElementMaterial = new THREE.MeshBasicMaterial({
                      color: 0xffffff,
@@ -458,9 +467,11 @@
 
             // Initial render
             renderer.render(scene, camera);
+            console.log('Initial Three.js render complete.');
 
             // Start the animation loop if not already running
             if (!animationFrameId) {
+                console.log('Starting animation loop.');
                 animate();
             }
         }
@@ -492,13 +503,11 @@
 
         // --- Update Star Opacities based on Fovea ---
         function updateStarOpacities() {
+            if (!starsGeometry || !camera) return; // Ensure geometry and camera exist
+
             const positions = starsGeometry.attributes.position.array;
             const opacities = starsGeometry.attributes.opacity.array;
             const vector = new THREE.Vector3();
-
-            // Get the center of the screen in world coordinates relative to the camera
-            // This is equivalent to a point directly in front of the camera
-            // const centerOfView = new THREE.Vector3(0, 0, -1).unproject(camera);
 
 
             for (let i = 0; i < numberOfStars; i++) {
@@ -633,29 +642,25 @@
 
         // Request pointer lock on click (primarily for desktop)
         mainContainer.addEventListener('click', () => {
-            // Only request pointer lock if it's likely NOT a touch device
+            console.log('Container clicked. Attempting to start simulation.');
+            // Always attempt to hide the message and play music on any click
+            userMessage.classList.add('hidden');
+            backgroundMusic.play().catch(error => {
+                console.error('Failed to play music on click:', error);
+                // Handle potential Autoplay Policy issues - maybe show a "Play Music" button
+            });
+
+            // If it's likely NOT a touch device, request pointer lock
             if (!isTouchDevice) {
                 mainContainer.requestPointerLock();
-            } else {
-                // On touch devices, we just want to hide the message and potentially play music
-                userMessage.classList.add('hidden');
-                 backgroundMusic.play().catch(error => {
-                     console.error('Failed to play music on touch click:', error);
-                 });
             }
+             // On touch devices, the touchstart handler already handles the initial interaction
         });
 
         // Handle pointer lock change event
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === mainContainer) {
                 console.log('Pointer Lock: Locked');
-                // Hide the message when locked
-                userMessage.classList.add('hidden');
-                 // Play music (also attempted on first touch)
-                 backgroundMusic.play().catch(error => {
-                     console.error('Failed to play music on pointer lock:', error);
-                 });
-
                 // Add desktop mousemove listener
                 document.addEventListener('mousemove', handleMouseMove, false);
                 // Hide fovea indicator on desktop when locked
@@ -664,8 +669,10 @@
                  settingsPanel.classList.remove('visible');
             } else {
                 console.log('Pointer Lock: Unlocked');
-                // Show the message when unlocked
-                 userMessage.classList.remove('hidden');
+                // Show the message when unlocked (only if not a touch device, touch devices keep it hidden)
+                 if (!isTouchDevice) {
+                     userMessage.classList.remove('hidden');
+                 }
                 // Pause background music when unlocked
                 backgroundMusic.pause();
                 // Remove desktop mousemove listener
@@ -676,7 +683,9 @@
                 // camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ');
                 // updateHtmlElementPositions();
                  // Show fovea indicator on desktop when unlocked (optional, or keep hidden)
-                 // foveaIndicator.classList.add('visible');
+                 // if (!isTouchDevice) {
+                 //    foveaIndicator.classList.add('visible');
+                 // }
             }
         }, false);
 
@@ -684,6 +693,10 @@
         document.addEventListener('pointerlockerror', () => {
             console.error('Pointer Lock: Error acquiring pointer lock.');
              userMessage.textContent = 'Error acquiring pointer lock. Please try again.';
+             // On desktop, if pointer lock fails, maybe show the message again or provide alternative instructions
+             if (!isTouchDevice) {
+                 userMessage.classList.remove('hidden');
+             }
         }, false);
 
 
@@ -728,6 +741,7 @@
 
         // Apply settings button click handler
         applySettingsButton.addEventListener('click', () => {
+            console.log('Applying settings...');
             // Update configuration variables from input values
             numberOfStars = parseInt(numStarsInput.value);
             starFieldSize = parseFloat(starFieldSizeInput.value);
@@ -747,6 +761,7 @@
 
             // Hide the settings panel after applying (optional)
             // settingsPanel.classList.remove('visible');
+            console.log('Settings applied.');
         });
 
          // Settings toggle button click handler
@@ -776,15 +791,21 @@
             foveaIndicator.classList.add('visible');
              // Update initial message for touch devices
              userMessage.innerHTML = 'Touch and drag to explore<br>Tap to start music (if needed)';
+        } else {
+            // On desktop, the fovea indicator is hidden initially and shown only when pointer lock is lost (optional)
+            foveaIndicator.classList.remove('visible');
         }
 
 
         // Initial update to position HTML elements correctly on load
         updateHtmlElementPositions();
 
+        console.log('Initialization complete.');
+
 
         // Optional: Basic responsiveness - handle window resize
         window.addEventListener('resize', () => {
+             console.log('Window resized.');
              // Exit pointer lock on resize for better handling
              if (document.pointerLockElement === mainContainer) {
                  document.exitPointerLock();
