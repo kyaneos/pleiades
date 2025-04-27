@@ -281,6 +281,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
+        // Configuration variables (declared outside DOMContentLoaded)
+        let numberOfStars = 10000; // Initial value
+        let starFieldSize = 2000; // Initial value
+        let foveaRadius = 150; // Initial value
+        let baseOpacity = 1.0; // Initial value
+        let minOpacity = 0.05; // Initial value
+        let mouseSensitivity = 0.002; // Initial value
+        let touchSensitivity = 0.005; // Initial value
+        let titleParallaxMultiplier = 0.15; // Initial value
+
         // Wait for the DOM to be fully loaded before running the script
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOMContentLoaded fired. Script is running.');
@@ -316,21 +326,27 @@
             const musicVolumeValue = document.getElementById('music-volume-value');
             const applySettingsButton = document.getElementById('apply-settings');
 
+            // Set initial values of input elements based on the declared variables
+            numStarsInput.value = numberOfStars;
+            starFieldSizeInput.value = starFieldSize;
+            foveaRadiusInput.value = foveaRadius;
+            foveaRadiusValue.textContent = foveaRadius;
+            peripheralBrightnessInput.value = baseOpacity * 100;
+            peripheralBrightnessValue.textContent = baseOpacity.toFixed(2);
+            foveatedDimnessInput.value = minOpacity * 100;
+            foveatedDimnessValue.textContent = minOpacity.toFixed(2);
+            mouseSensitivityInput.value = mouseSensitivity * 1000;
+            mouseSensitivityValue.textContent = mouseSensitivity.toFixed(3);
+            touchSensitivityInput.value = touchSensitivity * 1000;
+            touchSensitivityValue.textContent = touchSensitivity.toFixed(3);
+            titleParallaxInput.value = titleParallaxMultiplier * 100;
+            titleParallaxValue.textContent = titleParallaxMultiplier.toFixed(2);
+            musicVolumeInput.value = 50; // Default slider value for 0.5 volume
+            musicVolumeValue.textContent = (50 / 100).toFixed(2);
+
 
             // Three.js variables
             let scene, camera, renderer, starsGeometry, starsMaterial, starField;
-
-            // Configuration variables (will be updated by settings)
-            let numberOfStars = parseInt(numStarsInput.value); // Initial value from input
-            let starFieldSize = parseFloat(starFieldSizeInput.value); // Initial value from input
-            let foveaRadius = parseFloat(foveaRadiusInput.value); // Initial value from input
-            let baseOpacity = parseFloat(peripheralBrightnessInput.value) / 100; // Initial value from input (scaled)
-            let minOpacity = parseFloat(foveatedDimnessInput.value) / 100; // Initial value from input (scaled)
-            let mouseSensitivity = parseFloat(mouseSensitivityInput.value) / 1000; // Initial value from input (scaled)
-            let touchSensitivity = parseFloat(touchSensitivityInput.value) / 1000; // Initial value from input (scaled)
-            let titleParallaxMultiplier = parseFloat(titleParallaxInput.value) / 100; // Initial value from input (scaled)
-            // Music volume is handled separately
-
 
             // Simulated view rotation (using Euler angles for simplicity in this example)
             let viewRotationX = 0;
