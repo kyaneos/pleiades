@@ -282,550 +282,555 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        // Get necessary HTML elements
-        const mainContainer = document.getElementById('main-container'); // Added this line
-        const threejsContainer = document.getElementById('threejs-container');
-        const overlay = document.getElementById('overlay');
-        const mainTitle = document.getElementById('main-title');
-        const userMessage = document.getElementById('user-message');
-        const developerCredits = document.getElementById('developer-credits');
-        const backgroundMusic = document.getElementById('background-music');
-        const foveaIndicator = document.getElementById('fovea-indicator');
-        const settingsPanel = document.getElementById('settings-panel');
-        const settingsToggle = document.getElementById('settings-toggle');
+        // Wait for the DOM to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded fired. Script is running.');
 
-        // Get settings input elements and value displays
-        const numStarsInput = document.getElementById('num-stars');
-        const starFieldSizeInput = document.getElementById('star-field-size');
-        const foveaRadiusInput = document.getElementById('fovea-radius');
-        const foveaRadiusValue = document.getElementById('fovea-radius-value');
-        const peripheralBrightnessInput = document.getElementById('peripheral-brightness');
-        const peripheralBrightnessValue = document.getElementById('peripheral-brightness-value');
-        const foveatedDimnessInput = document.getElementById('foveated-dimness');
-        const foveatedDimnessValue = document.getElementById('foveated-dimness-value');
-        const mouseSensitivityInput = document.getElementById('mouse-sensitivity');
-        const mouseSensitivityValue = document.getElementById('mouse-sensitivity-value');
-        const touchSensitivityInput = document.getElementById('touch-sensitivity');
-        const touchSensitivityValue = document.getElementById('touch-sensitivity-value');
-         const titleParallaxInput = document.getElementById('title-parallax');
-        const titleParallaxValue = document.getElementById('title-parallax-value');
-        const musicVolumeInput = document.getElementById('music-volume');
-        const musicVolumeValue = document.getElementById('music-volume-value');
-        const applySettingsButton = document.getElementById('apply-settings');
+            // Get necessary HTML elements
+            const mainContainer = document.getElementById('main-container');
+            const threejsContainer = document.getElementById('threejs-container');
+            const overlay = document.getElementById('overlay');
+            const mainTitle = document.getElementById('main-title');
+            const userMessage = document.getElementById('user-message');
+            const developerCredits = document.getElementById('developer-credits');
+            const backgroundMusic = document.getElementById('background-music');
+            const foveaIndicator = document.getElementById('fovea-indicator');
+            const settingsPanel = document.getElementById('settings-panel');
+            const settingsToggle = document.getElementById('settings-toggle');
 
-
-        // Three.js variables
-        let scene, camera, renderer, starsGeometry, starsMaterial, starField;
-
-        // Configuration variables (will be updated by settings)
-        let numberOfStars = parseInt(numStarsInput.value); // Initial value from input
-        let starFieldSize = parseFloat(starFieldSizeInput.value); // Initial value from input
-        let foveaRadius = parseFloat(foveaRadiusInput.value); // Initial value from input
-        let baseOpacity = parseFloat(peripheralBrightnessInput.value) / 100; // Initial value from input (scaled)
-        let minOpacity = parseFloat(foveatedDimnessInput.value) / 100; // Initial value from input (scaled)
-        let mouseSensitivity = parseFloat(mouseSensitivityInput.value) / 1000; // Initial value from input (scaled)
-        let touchSensitivity = parseFloat(touchSensitivityInput.value) / 1000; // Initial value from input (scaled)
-        let titleParallaxMultiplier = parseFloat(titleParallaxInput.value) / 100; // Initial value from input (scaled)
-        // Music volume is set directly on the audio element
+            // Get settings input elements and value displays
+            const numStarsInput = document.getElementById('num-stars');
+            const starFieldSizeInput = document.getElementById('star-field-size');
+            const foveaRadiusInput = document.getElementById('fovea-radius');
+            const foveaRadiusValue = document.getElementById('fovea-radius-value');
+            const peripheralBrightnessInput = document.getElementById('peripheral-brightness');
+            const peripheralBrightnessValue = document.getElementById('peripheral-brightness-value');
+            const foveatedDimnessInput = document.getElementById('foveated-dimness');
+            const foveatedDimnessValue = document.getElementById('foveated-dimness-value');
+            const mouseSensitivityInput = document.getElementById('mouse-sensitivity');
+            const mouseSensitivityValue = document.getElementById('mouse-sensitivity-value');
+            const touchSensitivityInput = document.getElementById('touch-sensitivity');
+            const touchSensitivityValue = document.getElementById('touch-sensitivity-value');
+             const titleParallaxInput = document.getElementById('title-parallax');
+            const titleParallaxValue = document.getElementById('title-parallax-value');
+            const musicVolumeInput = document.getElementById('music-volume');
+            const musicVolumeValue = document.getElementById('music-volume-value');
+            const applySettingsButton = document.getElementById('apply-settings');
 
 
-        // Simulated view rotation (using Euler angles for simplicity in this example)
-        let viewRotationX = 0;
-        let viewRotationY = 0;
+            // Three.js variables
+            let scene, camera, renderer, starsGeometry, starsMaterial, starField;
 
-        // Variable to track the last touch position
-        let lastTouchX = null;
-        let lastTouchY = null;
-
-        // Flag to check if it's likely a touch device
-        const isTouchDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
-        // --- Three.js Initialization ---
-        function initThreeJS() {
-            console.log('Initializing Three.js...');
-            // Create a scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000); // Black background
-
-            // Create a camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 0.1; // Start slightly into the scene
-
-            // Create a renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            // Clear previous canvas if it exists
-            while (threejsContainer.firstChild) {
-                threejsContainer.removeChild(threejsContainer.firstChild);
-            }
-            threejsContainer.appendChild(renderer.domElement);
-
-             // Dispose of previous star field if it exists
-             if (starField) {
-                 scene.remove(starField);
-                 starsGeometry.dispose();
-                 starsMaterial.dispose();
-                 console.log('Disposed of previous star field.');
-             }
+            // Configuration variables (will be updated by settings)
+            let numberOfStars = parseInt(numStarsInput.value); // Initial value from input
+            let starFieldSize = parseFloat(starFieldSizeInput.value); // Initial value from input
+            let foveaRadius = parseFloat(foveaRadiusInput.value); // Initial value from input
+            let baseOpacity = parseFloat(peripheralBrightnessInput.value) / 100; // Initial value from input (scaled)
+            let minOpacity = parseFloat(foveatedDimnessInput.value) / 100; // Initial value from input (scaled)
+            let mouseSensitivity = parseFloat(mouseSensitivityInput.value) / 1000; // Initial value from input (scaled)
+            let touchSensitivity = parseFloat(touchSensitivityInput.value) / 1000; // Initial value from input (scaled)
+            let titleParallaxMultiplier = parseFloat(titleParallaxInput.value) / 100; // Initial value from input (scaled)
+            // Music volume is set directly on the audio element
 
 
-            // Create star geometry (using BufferGeometry for performance)
-            starsGeometry = new THREE.BufferGeometry();
-            const positions = [];
-            const opacities = []; // Store initial opacity for each star
+            // Simulated view rotation (using Euler angles for simplicity in this example)
+            let viewRotationX = 0;
+            let viewRotationY = 0;
 
-            for (let i = 0; i < numberOfStars; i++) {
-                // Random position within the star field cube
-                const x = (Math.random() - 0.5) * starFieldSize;
-                const y = (Math.random() - 0.5) * starFieldSize;
-                const z = (Math.random() - 0.5) * starFieldSize;
-                positions.push(x, y, z);
+            // Variable to track the last touch position
+            let lastTouchX = null;
+            let lastTouchY = null;
 
-                // Store initial opacity (can be varied based on position/depth if desired)
-                opacities.push(baseOpacity); // Start with full base opacity
-            }
+            // Flag to check if it's likely a touch device
+            const isTouchDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
-            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            starsGeometry.setAttribute('opacity', new THREE.Float32BufferAttribute(opacities, 1));
+            // --- Three.js Initialization ---
+            function initThreeJS() {
+                console.log('Initializing Three.js...');
+                // Create a scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x000000); // Black background
 
-            console.log(`Created ${numberOfStars} stars.`);
+                // Create a camera
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 0.1; // Start slightly into the scene
 
+                // Create a renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                // Clear previous canvas if it exists
+                while (threejsContainer.firstChild) {
+                    threejsContainer.removeChild(threejsContainer.firstChild);
+                }
+                threejsContainer.appendChild(renderer.domElement);
 
-            // Create star material
-            starsMaterial = new THREE.PointsMaterial({
-                color: 0xffffff, // White stars
-                size: 2, // Pixel size of stars
-                sizeAttenuation: false, // Stars maintain pixel size regardless of distance
-                transparent: true,
-                opacity: 1.0, // Base opacity controlled by vertex attribute
-                vertexColors: false // We'll handle opacity per vertex
-            });
-
-             // Custom shader to use vertex opacity
-             starsMaterial.onBeforeCompile = (shader) => {
-                 shader.vertexShader = shader.vertexShader.replace(
-                     '#include <common>',
-                     `
-                     #include <common>
-                     attribute float opacity;
-                     varying float vOpacity;
-                     `
-                 );
-                 shader.vertexShader = shader.vertexShader.replace(
-                     '#include <fog_vertex>',
-                     `
-                     #include <fog_vertex>
-                     vOpacity = opacity;
-                     `
-                 );
-                 shader.fragmentShader = shader.fragmentShader.replace(
-                     'gl_FragColor = vec4( diffuse, opacity );',
-                     'gl_FragColor = vec4( diffuse, vOpacity );'
-                 );
-             };
+                 // Dispose of previous star field if it exists
+                 if (starField) {
+                     scene.remove(starField);
+                     starsGeometry.dispose();
+                     starsMaterial.dispose();
+                     console.log('Disposed of previous star field.');
+                 }
 
 
-            // Create the star field Points object
-            starField = new THREE.Points(starsGeometry, starsMaterial);
-            scene.add(starField);
+                // Create star geometry (using BufferGeometry for performance)
+                starsGeometry = new THREE.BufferGeometry();
+                const positions = [];
+                const opacities = []; // Store initial opacity for each star
 
-            // Add background elements (as simple spheres for now) - Only add once
-             if (scene.children.filter(c => c.userData.isBackgroundElement).length === 0) {
-                console.log('Adding background elements...');
-                const backgroundElementGeometry = new THREE.SphereGeometry(1, 32, 32);
-                const backgroundElementMaterial = new THREE.MeshBasicMaterial({
-                     color: 0xffffff,
-                     transparent: true,
-                     opacity: 0.02, // Very faint
-                     blending: THREE.AdditiveBlending // Subtle glow effect
+                for (let i = 0; i < numberOfStars; i++) {
+                    // Random position within the star field cube
+                    const x = (Math.random() - 0.5) * starFieldSize;
+                    const y = (Math.random() - 0.5) * starFieldSize;
+                    const z = (Math.random() - 0.5) * starFieldSize;
+                    positions.push(x, y, z);
+
+                    // Store initial opacity (can be varied based on position/depth if desired)
+                    opacities.push(baseOpacity); // Start with full base opacity
+                }
+
+                starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                starsGeometry.setAttribute('opacity', new THREE.Float32BufferAttribute(opacities, 1));
+
+                console.log(`Created ${numberOfStars} stars.`);
+
+
+                // Create star material
+                starsMaterial = new THREE.PointsMaterial({
+                    color: 0xffffff, // White stars
+                    size: 2, // Pixel size of stars
+                    sizeAttenuation: false, // Stars maintain pixel size regardless of distance
+                    transparent: true,
+                    opacity: 1.0, // Base opacity controlled by vertex attribute
+                    vertexColors: false // We'll handle opacity per vertex
                 });
 
-                for (let i = 0; i < numberOfBackgroundElements; i++) {
-                     const element = new THREE.Mesh(backgroundElementGeometry, backgroundElementMaterial.clone()); // Clone material to vary opacity/color later if needed
-                     element.userData.isBackgroundElement = true; // Mark as background element
-                     // Position far away
-                     element.position.set(
-                         (Math.random() - 0.5) * starFieldSize * 2,
-                         (Math.random() - 0.5) * starFieldSize * 2,
-                         (Math.random() - 0.5) * starFieldSize * 2
+                 // Custom shader to use vertex opacity
+                 starsMaterial.onBeforeCompile = (shader) => {
+                     shader.vertexShader = shader.vertexShader.replace(
+                         '#include <common>',
+                         `
+                         #include <common>
+                         attribute float opacity;
+                         varying float vOpacity;
+                         `
                      );
-                     // Scale randomly
-                     const scale = 50 + Math.random() * 100;
-                     element.scale.set(scale, scale, scale);
-                     scene.add(element);
+                     shader.vertexShader = shader.vertexShader.replace(
+                         '#include <fog_vertex>',
+                         `
+                         #include <fog_vertex>
+                         vOpacity = opacity;
+                         `
+                     );
+                     shader.fragmentShader = shader.fragmentShader.replace(
+                         'gl_FragColor = vec4( diffuse, opacity );',
+                         'gl_FragColor = vec4( diffuse, vOpacity );'
+                     );
+                 };
 
-                     // Store initial position for animation
-                     element.userData.initialPosition = element.position.clone();
-                     element.userData.driftSpeed = 0.001 + Math.random() * 0.002;
-                     element.userData.driftDirection = new THREE.Vector3(
-                         (Math.random() - 0.5),
-                         (Math.random() - 0.5),
-                         (Math.random() - 0.5)
-                     ).normalize();
+
+                // Create the star field Points object
+                starField = new THREE.Points(starsGeometry, starsMaterial);
+                scene.add(starField);
+
+                // Add background elements (as simple spheres for now) - Only add once
+                 if (scene.children.filter(c => c.userData.isBackgroundElement).length === 0) {
+                    console.log('Adding background elements...');
+                    const backgroundElementGeometry = new THREE.SphereGeometry(1, 32, 32);
+                    const backgroundElementMaterial = new THREE.MeshBasicMaterial({
+                         color: 0xffffff,
+                         transparent: true,
+                         opacity: 0.02, // Very faint
+                         blending: THREE.AdditiveBlending // Subtle glow effect
+                    });
+
+                    for (let i = 0; i < numberOfBackgroundElements; i++) {
+                         const element = new THREE.Mesh(backgroundElementGeometry, backgroundElementMaterial.clone()); // Clone material to vary opacity/color later if needed
+                         element.userData.isBackgroundElement = true; // Mark as background element
+                         // Position far away
+                         element.position.set(
+                             (Math.random() - 0.5) * starFieldSize * 2,
+                             (Math.random() - 0.5) * starFieldSize * 2,
+                             (Math.random() - 0.5) * starFieldSize * 2
+                         );
+                         // Scale randomly
+                         const scale = 50 + Math.random() * 100;
+                         element.scale.set(scale, scale, scale);
+                         scene.add(element);
+
+                         // Store initial position for animation
+                         element.userData.initialPosition = element.position.clone();
+                         element.userData.driftSpeed = 0.001 + Math.random() * 0.002;
+                         element.userData.driftDirection = new THREE.Vector3(
+                             (Math.random() - 0.5),
+                             (Math.random() - 0.5),
+                             (Math.random() - 0.5)
+                         ).normalize();
+                    }
+                 }
+
+
+                // Initial render
+                renderer.render(scene, camera);
+                console.log('Initial Three.js render complete.');
+
+                // Start the animation loop if not already running
+                if (!animationFrameId) {
+                    console.log('Starting animation loop.');
+                    animate();
                 }
-             }
-
-
-            // Initial render
-            renderer.render(scene, camera);
-            console.log('Initial Three.js render complete.');
-
-            // Start the animation loop if not already running
-            if (!animationFrameId) {
-                console.log('Starting animation loop.');
-                animate();
-            }
-        }
-
-        // Animation frame ID for stopping/starting the loop
-        let animationFrameId = null;
-
-        // --- Animation Loop ---
-        function animate() {
-            animationFrameId = requestAnimationFrame(animate);
-
-            // Update star opacities based on distance to the center of the screen
-            updateStarOpacities();
-
-            // Update background element positions for slow drift
-            scene.children.forEach(child => {
-                if (child.userData.isBackgroundElement && child.userData.initialPosition) {
-                    const time = performance.now() * child.userData.driftSpeed;
-                    child.position.copy(child.userData.initialPosition).add(
-                        child.userData.driftDirection.clone().multiplyScalar(Math.sin(time))
-                    );
-                }
-            });
-
-
-            // Render the scene
-            renderer.render(scene, camera);
-        }
-
-        // --- Update Star Opacities based on Fovea ---
-        function updateStarOpacities() {
-            if (!starsGeometry || !camera) return; // Ensure geometry and camera exist
-
-            const positions = starsGeometry.attributes.position.array;
-            const opacities = starsGeometry.attributes.opacity.array;
-            const vector = new THREE.Vector3();
-
-
-            for (let i = 0; i < numberOfStars; i++) {
-                vector.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
-
-                // Calculate the distance from the star to the center of the screen in 2D screen space
-                // We need to project the 3D star position to 2D screen coordinates
-                vector.project(camera); // Project star position to normalized device coordinates (-1 to 1)
-
-                // Convert normalized device coordinates to pixel coordinates
-                const screenX = (vector.x + 1) / 2 * window.innerWidth;
-                const screenY = (1 - vector.y) / 2 * window.innerHeight; // Y is inverted in screen coordinates
-
-                // Calculate distance from the star's screen position to the center of the screen (pixel 0,0 relative to center)
-                const distanceToCenter = Math.sqrt(Math.pow(screenX - window.innerWidth / 2, 2) + Math.pow(screenY - window.innerHeight / 2, 2));
-
-                let opacity;
-                // Check if the star is within the fovea radius of the screen center
-                if (distanceToCenter < foveaRadius) {
-                    // Calculate opacity inversely proportional to distance within the radius
-                    // Closer to center = less opaque (more dim)
-                    opacity = minOpacity + (baseOpacity - minOpacity) * (distanceToCenter / foveaRadius);
-                    // Ensure opacity stays within the min/base range
-                    opacity = Math.min(baseOpacity, Math.max(minOpacity, opacity));
-                } else {
-                    // If outside the fovea radius, set to base opacity (more visible)
-                    opacity = baseOpacity;
-                }
-
-                // Apply the calculated opacity to the vertex attribute
-                opacities[i] = opacity;
             }
 
-            // Mark the opacity attribute as needing an update
-            starsGeometry.attributes.opacity.needsUpdate = true;
-        }
+            // Animation frame ID for stopping/starting the loop
+            let animationFrameId = null;
 
+            // --- Animation Loop ---
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
 
-        // --- Input Event Handling (Mouse & Touch) ---
+                // Update star opacities based on distance to the center of the screen
+                updateStarOpacities();
 
-        // Handle mouse movement (desktop) when pointer is locked
-        function handleMouseMove(event) {
-            // Accumulate mouse delta for camera rotation
-            viewRotationY -= event.movementX * mouseSensitivity;
-            viewRotationX -= event.movementY * mouseSensitivity;
-
-            // Clamp vertical rotation to prevent flipping
-            viewRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, viewRotationX));
-
-            // Apply rotation to the camera
-            camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ'); // Use YXZ order to avoid gimbal lock initially
-
-            // Update HTML element positions based on view rotation
-            updateHtmlElementPositions();
-        }
-
-        // Handle touch start (mobile)
-        function handleTouchStart(event) {
-             if (event.touches.length === 1) {
-                // Prevent default touch actions like scrolling/zooming
-                event.preventDefault();
-                // Record the starting touch position
-                lastTouchX = event.touches[0].clientX;
-                lastTouchY = event.touches[0].clientY;
-                // Hide the message on first touch
-                userMessage.classList.add('hidden');
-
-                 // Attempt to play music on the first touch (addresses autoplay policies)
-                backgroundMusic.play().catch(error => {
-                    console.error('Failed to play music on touch:', error);
-                    // Handle potential Autoplay Policy issues
+                // Update background element positions for slow drift
+                scene.children.forEach(child => {
+                    if (child.userData.isBackgroundElement && child.userData.initialPosition) {
+                        const time = performance.now() * child.userData.driftSpeed;
+                        child.position.copy(child.userData.initialPosition).add(
+                            child.userData.driftDirection.clone().multiplyScalar(Math.sin(time))
+                        );
+                    }
                 });
-             }
-        }
 
-        // Handle touch move (mobile)
-        function handleTouchMove(event) {
-            if (event.touches.length === 1 && lastTouchX !== null) {
-                 // Prevent default touch actions
-                 event.preventDefault();
 
-                // Calculate touch delta movements
-                const deltaX = event.touches[0].clientX - lastTouchX;
-                const deltaY = event.touches[0].clientY - lastTouchY;
+                // Render the scene
+                renderer.render(scene, camera);
+            }
 
-                // Accumulate touch delta for camera rotation, scaled by sensitivity
-                viewRotationY -= deltaX * touchSensitivity;
-                viewRotationX -= deltaY * touchSensitivity;
+            // --- Update Star Opacities based on Fovea ---
+            function updateStarOpacities() {
+                if (!starsGeometry || !camera) return; // Ensure geometry and camera exist
 
-                // Clamp vertical rotation
+                const positions = starsGeometry.attributes.position.array;
+                const opacities = starsGeometry.attributes.opacity.array;
+                const vector = new THREE.Vector3();
+
+
+                for (let i = 0; i < numberOfStars; i++) {
+                    vector.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+
+                    // Calculate the distance from the star to the center of the screen in 2D screen space
+                    // We need to project the 3D star position to 2D screen coordinates
+                    vector.project(camera); // Project star position to normalized device coordinates (-1 to 1)
+
+                    // Convert normalized device coordinates to pixel coordinates
+                    const screenX = (vector.x + 1) / 2 * window.innerWidth;
+                    const screenY = (1 - vector.y) / 2 * window.innerHeight; // Y is inverted in screen coordinates
+
+                    // Calculate distance from the star's screen position to the center of the screen (pixel 0,0 relative to center)
+                    const distanceToCenter = Math.sqrt(Math.pow(screenX - window.innerWidth / 2, 2) + Math.pow(screenY - window.innerHeight / 2, 2));
+
+                    let opacity;
+                    // Check if the star is within the fovea radius of the screen center
+                    if (distanceToCenter < foveaRadius) {
+                        // Calculate opacity inversely proportional to distance within the radius
+                        // Closer to center = less opaque (more dim)
+                        opacity = minOpacity + (baseOpacity - minOpacity) * (distanceToCenter / foveaRadius);
+                        // Ensure opacity stays within the min/base range
+                        opacity = Math.min(baseOpacity, Math.max(minOpacity, opacity));
+                    } else {
+                        // If outside the fovea radius, set to base opacity (more visible)
+                        opacity = baseOpacity;
+                    }
+
+                    // Apply the calculated opacity to the vertex attribute
+                    opacities[i] = opacity;
+                }
+
+                // Mark the opacity attribute as needing an update
+                starsGeometry.attributes.opacity.needsUpdate = true;
+            }
+
+
+            // --- Input Event Handling (Mouse & Touch) ---
+
+            // Handle mouse movement (desktop) when pointer is locked
+            function handleMouseMove(event) {
+                // Accumulate mouse delta for camera rotation
+                viewRotationY -= event.movementX * mouseSensitivity;
+                viewRotationX -= event.movementY * mouseSensitivity;
+
+                // Clamp vertical rotation to prevent flipping
                 viewRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, viewRotationX));
 
                 // Apply rotation to the camera
-                camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ');
+                camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ'); // Use YXZ order to avoid gimbal lock initially
 
-                // Update the last touch position
-                lastTouchX = event.touches[0].clientX;
-                lastTouchY = event.touches[0].clientY;
-
-                 // Update HTML element positions based on view rotation
+                // Update HTML element positions based on view rotation
                 updateHtmlElementPositions();
             }
-        }
 
-        // Handle touch end (mobile)
-        function handleTouchEnd(event) {
-            // Reset last touch position
-            lastTouchX = null;
-            lastTouchY = null;
-             // If all touches ended, you might want to pause/stop movement or handle multi-touch gestures
-        }
+            // Handle touch start (mobile)
+            function handleTouchStart(event) {
+                 if (event.touches.length === 1) {
+                    // Prevent default touch actions like scrolling/zooming
+                    event.preventDefault();
+                    // Record the starting touch position
+                    lastTouchX = event.touches[0].clientX;
+                    lastTouchY = event.touches[0].clientY;
+                    // Hide the message on first touch
+                    userMessage.classList.add('hidden');
 
-        // Update positions of 2D HTML elements based on camera rotation
-        function updateHtmlElementPositions() {
-             const centerX = window.innerWidth / 2;
-             const centerY = window.innerHeight / 2;
+                     // Attempt to play music on the first touch (addresses autoplay policies)
+                    backgroundMusic.play().catch(error => {
+                        console.error('Failed to play music on touch:', error);
+                        // Handle potential Autoplay Policy issues
+                    });
+                 }
+            }
 
-             // Calculate the position of the title relative to the center of the view
-             // This is simplified - for perfect alignment with a point in 3D space,
-             // you would project a 3D point to 2D. This approach simulates it.
-             const newTitleX = centerX + (-viewRotationY) * titleParallaxMultiplier * window.innerWidth;
-             const newTitleY = centerY + (-viewRotationX) * titleParallaxMultiplier * window.innerHeight;
+            // Handle touch move (mobile)
+            function handleTouchMove(event) {
+                if (event.touches.length === 1 && lastTouchX !== null) {
+                     // Prevent default touch actions
+                     event.preventDefault();
 
-             // Apply transform for smoother movement and centering
-             mainTitle.style.left = `${newTitleX}px`;
-             mainTitle.style.top = `${newTitleY}px`;
-             mainTitle.style.transform = `translate(-50%, -50%)`; // Keep centered on its calculated point
-        }
+                    // Calculate touch delta movements
+                    const deltaX = event.touches[0].clientX - lastTouchX;
+                    const deltaY = event.touches[0].clientY - lastTouchY;
+
+                    // Accumulate touch delta for camera rotation, scaled by sensitivity
+                    viewRotationY -= deltaX * touchSensitivity;
+                    viewRotationX -= deltaY * touchSensitivity;
+
+                    // Clamp vertical rotation
+                    viewRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, viewRotationX));
+
+                    // Apply rotation to the camera
+                    camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ');
+
+                    // Update the last touch position
+                    lastTouchX = event.touches[0].clientX;
+                    lastTouchY = event.touches[0].clientY;
+
+                     // Update HTML element positions based on view rotation
+                    updateHtmlElementPositions();
+                }
+            }
+
+            // Handle touch end (mobile)
+            function handleTouchEnd(event) {
+                // Reset last touch position
+                lastTouchX = null;
+                lastTouchY = null;
+                 // If all touches ended, you might want to pause/stop movement or handle multi-touch gestures
+            }
+
+            // Update positions of 2D HTML elements based on camera rotation
+            function updateHtmlElementPositions() {
+                 const centerX = window.innerWidth / 2;
+                 const centerY = window.innerHeight / 2;
+
+                 // Calculate the position of the title relative to the center of the view
+                 // This is simplified - for perfect alignment with a point in 3D space,
+                 // you would project a 3D point to 2D. This approach simulates it.
+                 const newTitleX = centerX + (-viewRotationY) * titleParallaxMultiplier * window.innerWidth;
+                 const newTitleY = centerY + (-viewRotationX) * titleParallaxMultiplier * window.innerHeight;
+
+                 // Apply transform for smoother movement and centering
+                 mainTitle.style.left = `${newTitleX}px`;
+                 mainTitle.style.top = `${newTitleY}px`;
+                 mainTitle.style.transform = `translate(-50%, -50%)`; // Keep centered on its calculated point
+            }
 
 
-        // --- Pointer Lock API Implementation (Desktop) ---
+            // --- Pointer Lock API Implementation (Desktop) ---
 
-        // Request pointer lock on click (primarily for desktop)
-        mainContainer.addEventListener('click', () => {
-            console.log('Container clicked. Attempting to start simulation.');
-            // Always attempt to hide the message and play music on any click
-            userMessage.classList.add('hidden');
-            backgroundMusic.play().catch(error => {
-                console.error('Failed to play music on click:', error);
-                // Handle potential Autoplay Policy issues - maybe show a "Play Music" button
+            // Request pointer lock on click (primarily for desktop)
+            mainContainer.addEventListener('click', () => {
+                console.log('Container clicked. Attempting to start simulation.');
+                // Always attempt to hide the message and play music on any click
+                userMessage.classList.add('hidden');
+                backgroundMusic.play().catch(error => {
+                    console.error('Failed to play music on click:', error);
+                    // Handle potential Autoplay Policy issues - maybe show a "Play Music" button
+                });
+
+                // If it's likely NOT a touch device, request pointer lock
+                if (!isTouchDevice) {
+                    mainContainer.requestPointerLock();
+                }
+                 // On touch devices, the touchstart handler already handles the initial interaction
             });
 
-            // If it's likely NOT a touch device, request pointer lock
-            if (!isTouchDevice) {
-                mainContainer.requestPointerLock();
-            }
-             // On touch devices, the touchstart handler already handles the initial interaction
-        });
+            // Handle pointer lock change event
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === mainContainer) {
+                    console.log('Pointer Lock: Locked');
+                    // Add desktop mousemove listener
+                    document.addEventListener('mousemove', handleMouseMove, false);
+                    // Hide fovea indicator on desktop when locked
+                    foveaIndicator.classList.remove('visible');
+                    // Hide settings panel when simulation starts
+                     settingsPanel.classList.remove('visible');
+                } else {
+                    console.log('Pointer Lock: Unlocked');
+                    // Show the message when unlocked (only if not a touch device, touch devices keep it hidden)
+                     if (!isTouchDevice) {
+                         userMessage.classList.remove('hidden');
+                     }
+                    // Pause background music when unlocked
+                    backgroundMusic.pause();
+                    // Remove desktop mousemove listener
+                    document.removeEventListener('mousemove', handleMouseMove, false);
+                    // Reset view rotation when exiting lock (optional, can be kept)
+                    // viewRotationX = 0;
+                    // viewRotationY = 0;
+                    // camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ');
+                    // updateHtmlElementPositions();
+                     // Show fovea indicator on desktop when unlocked (optional, or keep hidden)
+                     // if (!isTouchDevice) {
+                     //    foveaIndicator.classList.add('visible');
+                     // }
+                }
+            }, false);
 
-        // Handle pointer lock change event
-        document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === mainContainer) {
-                console.log('Pointer Lock: Locked');
-                // Add desktop mousemove listener
-                document.addEventListener('mousemove', handleMouseMove, false);
-                // Hide fovea indicator on desktop when locked
-                foveaIndicator.classList.remove('visible');
-                // Hide settings panel when simulation starts
-                 settingsPanel.classList.remove('visible');
-            } else {
-                console.log('Pointer Lock: Unlocked');
-                // Show the message when unlocked (only if not a touch device, touch devices keep it hidden)
+            // Handle pointer lock error
+            document.addEventListener('pointerlockerror', () => {
+                console.error('Pointer Lock: Error acquiring pointer lock.');
+                 userMessage.textContent = 'Error acquiring pointer lock. Please try again.';
+                 // On desktop, if pointer lock fails, maybe show the message again or provide alternative instructions
                  if (!isTouchDevice) {
                      userMessage.classList.remove('hidden');
                  }
-                // Pause background music when unlocked
-                backgroundMusic.pause();
-                // Remove desktop mousemove listener
-                document.removeEventListener('mousemove', handleMouseMove, false);
-                // Reset view rotation when exiting lock (optional, can be kept)
-                // viewRotationX = 0;
-                // viewRotationY = 0;
-                // camera.rotation.set(viewRotationX, viewRotationY, 0, 'YXZ');
-                // updateHtmlElementPositions();
-                 // Show fovea indicator on desktop when unlocked (optional, or keep hidden)
-                 // if (!isTouchDevice) {
-                 //    foveaIndicator.classList.add('visible');
-                 // }
-            }
-        }, false);
-
-        // Handle pointer lock error
-        document.addEventListener('pointerlockerror', () => {
-            console.error('Pointer Lock: Error acquiring pointer lock.');
-             userMessage.textContent = 'Error acquiring pointer lock. Please try again.';
-             // On desktop, if pointer lock fails, maybe show the message again or provide alternative instructions
-             if (!isTouchDevice) {
-                 userMessage.classList.remove('hidden');
-             }
-        }, false);
+            }, false);
 
 
-        // --- Keyboard Event Listener for Credits and Settings Toggle ---
-        document.addEventListener('keydown', (event) => {
-            // Check if the pressed key is 'c' for credits
-            if (event.key === 'c') {
-                developerCredits.classList.toggle('visible'); // Toggle visibility regardless of pointer lock
-            }
-             // Check if the pressed key is 's' for settings (or another key if 's' is needed for movement later)
-             if (event.key === 's' && document.pointerLockElement !== mainContainer) {
+            // --- Keyboard Event Listener for Credits and Settings Toggle ---
+            document.addEventListener('keydown', (event) => {
+                // Check if the pressed key is 'c' for credits
+                if (event.key === 'c') {
+                    developerCredits.classList.toggle('visible'); // Toggle visibility regardless of pointer lock
+                }
+                 // Check if the pressed key is 's' for settings (or another key if 's' is needed for movement later)
+                 if (event.key === 's' && document.pointerLockElement !== mainContainer) {
+                     settingsPanel.classList.toggle('visible');
+                 }
+            });
+
+            // --- Settings Panel Functionality ---
+
+            // Update value displays when sliders are moved
+            foveaRadiusInput.addEventListener('input', () => {
+                foveaRadiusValue.textContent = foveaRadiusInput.value;
+            });
+             peripheralBrightnessInput.addEventListener('input', () => {
+                peripheralBrightnessValue.textContent = (peripheralBrightnessInput.value / 100).toFixed(2);
+            });
+             foveatedDimnessInput.addEventListener('input', () => {
+                foveatedDimnessValue.textContent = (foveatedDimnessInput.value / 100).toFixed(2);
+            });
+             mouseSensitivityInput.addEventListener('input', () => {
+                mouseSensitivityValue.textContent = (mouseSensitivityInput.value / 1000).toFixed(3);
+            });
+             touchSensitivityInput.addEventListener('input', () => {
+                touchSensitivityValue.textContent = (touchSensitivityInput.value / 1000).toFixed(3);
+            });
+             titleParallaxInput.addEventListener('input', () => {
+                titleParallaxValue.textContent = (titleParallaxInput.value / 100).toFixed(2);
+            });
+             musicVolumeInput.addEventListener('input', () => {
+                musicVolumeValue.textContent = (musicVolumeInput.value / 100).toFixed(2);
+                backgroundMusic.volume = musicVolumeInput.value / 100; // Update volume immediately
+            });
+
+
+            // Apply settings button click handler
+            applySettingsButton.addEventListener('click', () => {
+                console.log('Applying settings...');
+                // Update configuration variables from input values
+                numberOfStars = parseInt(numStarsInput.value);
+                starFieldSize = parseFloat(starFieldSizeInput.value);
+                foveaRadius = parseFloat(foveaRadiusInput.value);
+                baseOpacity = parseFloat(peripheralBrightnessInput.value) / 100;
+                minOpacity = parseFloat(foveatedDimnessInput.value) / 100;
+                mouseSensitivity = parseFloat(mouseSensitivityInput.value) / 1000;
+                touchSensitivity = parseFloat(touchSensitivityInput.value) / 1000;
+                titleParallaxMultiplier = parseFloat(titleParallaxInput.value) / 100;
+                // Music volume is updated on slider input
+
+                // Re-initialize Three.js scene with new settings (for star count and field size)
+                initThreeJS();
+
+                // Update fovea indicator size based on new foveaRadius
+                foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
+
+                // Hide the settings panel after applying (optional)
+                // settingsPanel.classList.remove('visible');
+                console.log('Settings applied.');
+            });
+
+             // Settings toggle button click handler
+             settingsToggle.addEventListener('click', () => {
                  settingsPanel.classList.toggle('visible');
-             }
-        });
-
-        // --- Settings Panel Functionality ---
-
-        // Update value displays when sliders are moved
-        foveaRadiusInput.addEventListener('input', () => {
-            foveaRadiusValue.textContent = foveaRadiusInput.value;
-        });
-         peripheralBrightnessInput.addEventListener('input', () => {
-            peripheralBrightnessValue.textContent = (peripheralBrightnessInput.value / 100).toFixed(2);
-        });
-         foveatedDimnessInput.addEventListener('input', () => {
-            foveatedDimnessValue.textContent = (foveatedDimnessInput.value / 100).toFixed(2);
-        });
-         mouseSensitivityInput.addEventListener('input', () => {
-            mouseSensitivityValue.textContent = (mouseSensitivityInput.value / 1000).toFixed(3);
-        });
-         touchSensitivityInput.addEventListener('input', () => {
-            touchSensitivityValue.textContent = (touchSensitivityInput.value / 1000).toFixed(3);
-        });
-         titleParallaxInput.addEventListener('input', () => {
-            titleParallaxValue.textContent = (titleParallaxInput.value / 100).toFixed(2);
-        });
-         musicVolumeInput.addEventListener('input', () => {
-            musicVolumeValue.textContent = (musicVolumeInput.value / 100).toFixed(2);
-            backgroundMusic.volume = musicVolumeInput.value / 100; // Update volume immediately
-        });
+             });
 
 
-        // Apply settings button click handler
-        applySettingsButton.addEventListener('click', () => {
-            console.log('Applying settings...');
-            // Update configuration variables from input values
-            numberOfStars = parseInt(numStarsInput.value);
-            starFieldSize = parseFloat(starFieldSizeInput.value);
-            foveaRadius = parseFloat(foveaRadiusInput.value);
-            baseOpacity = parseFloat(peripheralBrightnessInput.value) / 100;
-            minOpacity = parseFloat(foveatedDimnessInput.value) / 100;
-            mouseSensitivity = parseFloat(mouseSensitivityInput.value) / 1000;
-            touchSensitivity = parseFloat(touchSensitivityInput.value) / 1000;
-            titleParallaxMultiplier = parseFloat(titleParallaxInput.value) / 100;
-            // Music volume is updated on slider input
+            // --- Initialization ---
 
-            // Re-initialize Three.js scene with new settings (for star count and field size)
+            // Initialize Three.js scene and elements
             initThreeJS();
 
-            // Update fovea indicator size based on new foveaRadius
+            // Set initial music volume (0.0 to 1.0)
+            backgroundMusic.volume = parseFloat(musicVolumeInput.value) / 100; // Set volume from input
+
+             // Add touch event listeners (mobile)
+             mainContainer.addEventListener('touchstart', handleTouchStart, false);
+             mainContainer.addEventListener('touchmove', handleTouchMove, false);
+             mainContainer.addEventListener('touchend', handleTouchEnd, false);
+
+            // Set fovea indicator size based on foveaRadius
             foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
 
-            // Hide the settings panel after applying (optional)
-            // settingsPanel.classList.remove('visible');
-            console.log('Settings applied.');
-        });
-
-         // Settings toggle button click handler
-         settingsToggle.addEventListener('click', () => {
-             settingsPanel.classList.toggle('visible');
-         });
-
-
-        // --- Initialization ---
-
-        // Initialize Three.js scene and elements
-        initThreeJS();
-
-        // Set initial music volume (0.0 to 1.0)
-        backgroundMusic.volume = parseFloat(musicVolumeInput.value) / 100; // Set volume from input
-
-         // Add touch event listeners (mobile)
-         mainContainer.addEventListener('touchstart', handleTouchStart, false);
-         mainContainer.addEventListener('touchmove', handleTouchMove, false);
-         mainContainer.addEventListener('touchend', handleTouchEnd, false);
-
-        // Set fovea indicator size based on foveaRadius
-        foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
-
-        // Show fovea indicator if it's a touch device
-        if (isTouchDevice) {
-            foveaIndicator.classList.add('visible');
-             // Update initial message for touch devices
-             userMessage.innerHTML = 'Touch and drag to explore<br>Tap to start music (if needed)';
-        } else {
-            // On desktop, the fovea indicator is hidden initially and shown only when pointer lock is lost (optional)
-            foveaIndicator.classList.remove('visible');
-        }
+            // Show fovea indicator if it's a touch device
+            if (isTouchDevice) {
+                foveaIndicator.classList.add('visible');
+                 // Update initial message for touch devices
+                 userMessage.innerHTML = 'Touch and drag to explore<br>Tap to start music (if needed)';
+            } else {
+                // On desktop, the fovea indicator is hidden initially and shown only when pointer lock is lost (optional)
+                foveaIndicator.classList.remove('visible');
+            }
 
 
-        // Initial update to position HTML elements correctly on load
-        updateHtmlElementPositions();
+            // Initial update to position HTML elements correctly on load
+            updateHtmlElementPositions();
 
-        console.log('Initialization complete.');
+            console.log('Initialization complete.');
 
 
-        // Optional: Basic responsiveness - handle window resize
-        window.addEventListener('resize', () => {
-             console.log('Window resized.');
-             // Exit pointer lock on resize for better handling
-             if (document.pointerLockElement === mainContainer) {
-                 document.exitPointerLock();
-             }
+            // Optional: Basic responsiveness - handle window resize
+            window.addEventListener('resize', () => {
+                 console.log('Window resized.');
+                 // Exit pointer lock on resize for better handling
+                 if (document.pointerLockElement === mainContainer) {
+                     document.exitPointerLock();
+                 }
 
-             // Update camera aspect ratio and renderer size
-             camera.aspect = window.innerWidth / window.innerHeight;
-             camera.updateProjectionMatrix();
-             renderer.setSize(window.innerWidth, window.innerHeight);
+                 // Update camera aspect ratio and renderer size
+                 camera.aspect = window.innerWidth / window.innerHeight;
+                 camera.updateProjectionMatrix();
+                 renderer.setSize(window.innerWidth, window.innerHeight);
 
-             // Update fovea indicator size on resize
-             foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
+                 // Update fovea indicator size on resize
+                 foveaIndicator.style.setProperty('--fovea-indicator-size', `${foveaRadius * 2}px`);
 
-             // Update HTML element positions for the new window size
-             updateHtmlElementPositions();
+                 // Update HTML element positions for the new window size
+                 updateHtmlElementPositions();
 
-             // Re-initialize Three.js with current settings on resize (optional, but good for consistent density)
-             // initThreeJS();
-        });
+                 // Re-initialize Three.js with current settings on resize (optional, but good for consistent density)
+                 // initThreeJS();
+            });
+        }); // End of DOMContentLoaded listener
     </script>
 </body>
 </html>
