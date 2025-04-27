@@ -44,14 +44,19 @@
             text-align: center; /* Center align text */
             pointer-events: none; /* Allow mouse events/touches to pass through */
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.8); /* Stronger text glow */
-            /* Smooth transition for position */
-            transition: transform 0.1s linear; /* Added transition for smoother movement */
+            /* Smooth transition for position and opacity */
+            transition: transform 0.1s linear, opacity 0.3s ease-in-out;
             white-space: nowrap; /* Prevent text wrapping */
             /* Initial centering */
             left: 50%;
             top: 50px; /* Initial top offset */
             transform: translateX(-50%);
              font-family: 'Average', serif; /* Changed font to Average */
+             opacity: 1; /* Visible by default */
+        }
+
+        .title.hidden {
+            opacity: 0; /* Hidden state */
         }
 
         /* Message to guide the user */
@@ -240,22 +245,20 @@
         <h3>Settings</h3>
 
         <label for="num-stars">Number of Stars:</label>
-        <input type="number" id="num-stars" value="10000" min="100" max="50000">
+        <input type="number" id="num-stars" value="2500" min="100" max="50000">
 
         <label for="star-field-size">Star Field Size:</label>
         <input type="number" id="star-field-size" value="2000" min="100" max="10000">
 
         <label for="fovea-radius">Fovea Radius:</label>
-        <input type="range" id="fovea-radius" min="50" max="1000" value="150">
-        <span id="fovea-radius-value">150</span> px
+        <input type="range" id="fovea-radius" min="50" max="1000" value="350"> <span id="fovea-radius-value">350</span> px
 
         <label for="peripheral-brightness">Peripheral Brightness:</label>
         <input type="range" id="peripheral-brightness" min="0" max="100" value="100">
         <span id="peripheral-brightness-value">1.0</span>
 
         <label for="foveated-dimness">Foveated Dimness:</label>
-        <input type="range" id="foveated-dimness" min="0" max="100" value="5">
-        <span id="foveated-dimness-value">0.05</span>
+        <input type="range" id="foveated-dimness" min="0" max="100" value="0"> <span id="foveated-dimness-value">0.00</span>
 
         <label for="mouse-sensitivity">Mouse Sensitivity:</label>
         <input type="range" id="mouse-sensitivity" min="1" max="100" value="2">
@@ -266,8 +269,7 @@
         <span id="touch-sensitivity-value">0.005</span>
 
          <label for="title-parallax">Title Parallax:</label>
-        <input type="range" id="title-parallax" min="0" max="100" value="15">
-        <span id="title-parallax-value">0.15</span>
+        <input type="range" id="title-parallax" min="0" max="100" value="3"> <span id="title-parallax-value">0.03</span>
 
         <label for="music-volume">Music Volume:</label>
         <input type="range" id="music-volume" min="0" max="100" value="50"> <span id="music-volume-value">0.50</span>
@@ -282,14 +284,14 @@
 
     <script>
         // Configuration variables (declared outside DOMContentLoaded)
-        let numberOfStars = 10000; // Initial value
+        let numberOfStars = 2500; // Decreased initial value
         let starFieldSize = 2000; // Initial value
-        let foveaRadius = 150; // Initial value
+        let foveaRadius = 350; // Increased initial value
         let baseOpacity = 1.0; // Initial value
-        let minOpacity = 0.05; // Initial value
+        let minOpacity = 0.00; // Decreased initial value
         let mouseSensitivity = 0.002; // Initial value
         let touchSensitivity = 0.005; // Initial value
-        let titleParallaxMultiplier = 0.15; // Initial value
+        let titleParallaxMultiplier = 0.03; // Decreased initial value
         let numberOfBackgroundElements = 15; // Moved declaration outside DOMContentLoaded
 
 
@@ -393,7 +395,7 @@
                 // Create star geometry (using BufferGeometry for performance)
                 starsGeometry = new THREE.BufferGeometry();
                 const positions = [];
-                const opacities = []; // Store initial opacity for each star
+                const initialOpacities = []; // Store initial opacity for each star
 
                 for (let i = 0; i < numberOfStars; i++) {
                     // Random position within the star field cube
@@ -403,11 +405,13 @@
                     positions.push(x, y, z);
 
                     // Store initial opacity (can be varied based on position/depth if desired)
-                    opacities.push(baseOpacity); // Start with full base opacity
+                    initialOpacities.push(0.3 + Math.random() * 0.7); // Vary initial opacity between 0.3 and 1.0
                 }
 
                 starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                starsGeometry.setAttribute('opacity', new THREE.Float32BufferAttribute(opacities, 1));
+                starsGeometry.setAttribute('initialOpacity', new THREE.Float32BufferAttribute(initialOpacities, 1)); // Store initial opacity as a separate attribute
+                 starsGeometry.setAttribute('opacity', new THREE.Float32BufferAttribute(new Float32Array(numberOfStars), 1)); // This will store the *current* opacity
+
 
                 console.log(`Created ${numberOfStars} stars.`);
 
@@ -428,7 +432,7 @@
                          '#include <common>',
                          `
                          #include <common>
-                         attribute float opacity;
+                         attribute float opacity; // Use the dynamic opacity attribute
                          varying float vOpacity;
                          `
                      );
@@ -436,12 +440,12 @@
                          '#include <fog_vertex>',
                          `
                          #include <fog_vertex>
-                         vOpacity = opacity;
+                         vOpacity = opacity; // Pass the dynamic opacity to the fragment shader
                          `
                      );
                      shader.fragmentShader = shader.fragmentShader.replace(
                          'gl_FragColor = vec4( diffuse, opacity );',
-                         'gl_FragColor = vec4( diffuse, vOpacity );'
+                         'gl_FragColor = vec4( diffuse, vOpacity );' // Use the dynamic opacity
                      );
                  };
 
@@ -528,7 +532,8 @@
                 if (!starsGeometry || !camera) return; // Ensure geometry and camera exist
 
                 const positions = starsGeometry.attributes.position.array;
-                const opacities = starsGeometry.attributes.opacity.array;
+                const initialOpacities = starsGeometry.attributes.initialOpacity.array; // Get initial opacities
+                const currentOpacities = starsGeometry.attributes.opacity.array; // Get the array to update
                 const vector = new THREE.Vector3();
 
 
@@ -546,21 +551,27 @@
                     // Calculate distance from the star's screen position to the center of the screen (pixel 0,0 relative to center)
                     const distanceToCenter = Math.sqrt(Math.pow(screenX - window.innerWidth / 2, 2) + Math.pow(screenY - window.innerHeight / 2, 2));
 
-                    let opacity;
+                    let foveaEffectOpacity;
                     // Check if the star is within the fovea radius of the screen center
                     if (distanceToCenter < foveaRadius) {
-                        // Calculate opacity inversely proportional to distance within the radius
-                        // Closer to center = less opaque (more dim)
-                        opacity = minOpacity + (baseOpacity - minOpacity) * (distanceToCenter / foveaRadius);
+                        // Calculate dimming effect based on distance within the radius
+                        // Closer to center = more dimming
+                        foveaEffectOpacity = minOpacity + (baseOpacity - minOpacity) * (distanceToCenter / foveaRadius);
                         // Ensure opacity stays within the min/base range
-                        opacity = Math.min(baseOpacity, Math.max(minOpacity, opacity));
+                        foveaEffectOpacity = Math.min(baseOpacity, Math.max(minOpacity, foveaEffectOpacity));
                     } else {
-                        // If outside the fovea radius, set to base opacity (more visible)
-                        opacity = baseOpacity;
+                        // Outside fovea radius, no dimming effect from fovea
+                        foveaEffectOpacity = baseOpacity; // This should be 1.0 if baseOpacity is 1.0
                     }
 
-                    // Apply the calculated opacity to the vertex attribute
-                    opacities[i] = opacity;
+                    // The star's final opacity is its initial brightness multiplied by the fovea effect
+                    currentOpacities[i] = initialOpacities[i] * foveaEffectOpacity;
+
+                    // Optional: Ensure opacity is not completely zero if minOpacity is > 0
+                    if (minOpacity > 0) {
+                         currentOpacities[i] = Math.max(minOpacity, currentOpacities[i]);
+                    }
+
                 }
 
                 // Mark the opacity attribute as needing an update
@@ -685,6 +696,8 @@
                     console.log('Pointer Lock: Locked');
                     // Set music volume to full (based on settings) when locked
                     backgroundMusic.volume = parseFloat(musicVolumeInput.value) / 100;
+                    // Hide title when locked
+                    mainTitle.classList.add('hidden');
                     // Add desktop mousemove listener
                     document.addEventListener('mousemove', handleMouseMove, false);
                     // Hide fovea indicator on desktop when locked
@@ -699,6 +712,8 @@
                      }
                     // Set music volume to half when unlocked
                     backgroundMusic.volume = (parseFloat(musicVolumeInput.value) / 100) / 2;
+                    // Show title when unlocked
+                    mainTitle.classList.remove('hidden');
                     // Pause background music when unlocked (if you want it to stop entirely)
                     // backgroundMusic.pause();
                     // Remove desktop mousemove listener
